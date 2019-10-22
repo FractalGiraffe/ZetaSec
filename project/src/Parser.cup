@@ -1,0 +1,195 @@
+/* ----------------------Preliminary Declarations Section--------------------*/
+ 
+import java_cup.runtime.*;
+
+/* Parser code so that it can interface with the scanner created with JFlex and change the way that it reports errors (include line and column number of the error).*/ 
+parser code {: 
+
+  private Lexer lexer;
+  public Boolean syntaxErrors;
+
+  public Parser(Lexer lex) {
+    super(lex);
+    lexer = lex;
+    syntaxErrors = false;
+  }
+
+  /* Add method syntax_error so it will display the line 
+     and column of where the error occurred in the input */ 
+
+  public void syntax_error(Symbol current_token) {
+    syntaxErrors = true;
+    report_error("Syntax error at line " + (current_token.left+1) + ", column " + current_token.right + ". ", null);
+  }
+
+:};
+
+/* Use the scanner created with JFlex  */ 
+scan with {: return lexer.next_token(); :};
+
+/* ------------Declaration of Terminals and Non Terminals Section----------- */
+
+/* Terminals (tokens returned by the scanner). */
+
+terminal    MAIN, LABEL, LITERAL, COLON, LBRACKET, RBRACKET, LBRACE, RBRACE, LPAREN, RPAREN, COMMA, SEMI, DOT, NOTEQ, EQ, LE, GRE, LEQ, PLUS, MINUS, MULT, DIV, XOR, NOT, AND, OR, IN, CONS, ASSIGNMENT, ALIAS, TDEF, FDEF, TOP, PDT, SEQ, IF, FI, THEN, ELSE, BREAK, LOOP, POOL, READ, PRINT, RETURN, ID; 
+terminal    BADCHAR;
+
+/* Non Terminals used in the Grammar Section. */
+
+non terminal    fieldReference, declarationStatement, returnStatement, breakStatement, aliasStatement, functionCallStatement, outputStatement, inputStatement, compoundStatement, statement, ifStatement, loopStatement, functionDeclaration, mainDeclaration, component, components, program, assignmentStatement, primitiveType, aggregateType, variableDeclaration, declarationList, userDefinedType, type, slice, subscription, list, functionCall, expressionList, expression, unaryOperator, binaryOperator;
+
+/* -------------Precedence and Associatively of Terminals Section----------- */
+
+precedence left  OR;
+precedence left  AND;
+precedence right NOT;
+precedence left  LE, LEQ, IN, EQ, NOTEQ;
+precedence left  XOR, CONS;
+precedence left  PLUS, MINUS;
+precedence left  MULT, DIV;
+precedence left  DOT;
+
+/* ----------------------------Grammar Section-------------------- */
+
+program ::= components mainDeclaration components;
+
+components ::= component components
+		|;
+
+component ::= functionDeclaration
+		|  declarationStatement
+		|  aliasStatement
+		;
+
+mainDeclaration ::= MAIN LBRACE compoundStatement RBRACE SEMI;
+
+functionDeclaration ::= FDEF ID LPAREN RPAREN LBRACE compoundStatement RBRACE SEMI 
+		|   FDEF ID LPAREN RPAREN LBRACE compoundStatement RBRACE COLON type SEMI
+		|  FDEF ID LPAREN declarationList RPAREN LBRACE compoundStatement RBRACE SEMI
+		|  FDEF ID LPAREN declarationList RPAREN LBRACE compoundStatement RBRACE COLON type SEMI
+		;
+
+loopStatement ::= LOOP compoundStatement POOL;
+
+ifStatement ::= IF LPAREN expression RPAREN THEN compoundStatement FI
+		| IF LPAREN expression RPAREN THEN compoundStatement ELSE compoundStatement FI
+		;
+
+compoundStatement ::= statement
+		|  statement compoundStatement
+		;
+
+statement ::= inputStatement
+		|  outputStatement
+		|  functionCallStatement
+		|  aliasStatement
+		|  breakStatement
+		|  returnStatement
+		|  declarationStatement
+		|  assignmentStatement
+		|  ifStatement
+		|  loopStatement
+		;
+
+inputStatement ::= READ ID SEMI;
+
+outputStatement ::= PRINT expression SEMI;
+
+functionCallStatement ::= functionCall SEMI;
+
+aliasStatement ::= ALIAS type ID SEMI; 
+
+breakStatement ::= BREAK SEMI
+		|  BREAK expression SEMI
+		;
+
+returnStatement ::= RETURN expression SEMI
+		|  RETURN SEMI
+		;
+
+declarationStatement ::= variableDeclaration SEMI
+		|  variableDeclaration ASSIGNMENT expressionList SEMI
+		|  userDefinedType SEMI
+		;
+
+assignmentStatement ::= ID ASSIGNMENT expressionList SEMI
+		|  fieldReference ASSIGNMENT expressionList SEMI
+		|  subscription ASSIGNMENT expressionList SEMI
+		|  slice ASSIGNMENT expressionList SEMI
+		;
+
+userDefinedType ::= TDEF ID LBRACE declarationList RBRACE;
+
+declarationList ::= variableDeclaration
+		|  variableDeclaration COMMA declarationList
+		;
+
+variableDeclaration ::= ID COLON type;
+
+type ::= ID
+		|  primitiveType
+		|  aggregateType
+		;
+
+aggregateType ::= SEQ LE type GRE
+		|  SEQ LE TOP LABEL GRE
+		;
+
+primitiveType ::= PDT LABEL;
+
+expression ::= ID
+		|  LITERAL
+		|  functionCall
+		|  list
+		|  subscription
+		|  slice
+		|  fieldReference
+		|  LPAREN expression RPAREN
+		|  unaryOperator expression  
+		|  expression binaryOperator expression
+		;
+
+fieldReference ::= ID DOT ID
+		|  ID DOT subscription
+		|  ID DOT slice
+		|  ID DOT fieldReference
+		;
+
+slice ::= ID LBRACKET expression COLON expression RBRACKET
+		|  ID LBRACKET expression COLON RBRACKET  
+		|  ID LBRACKET COLON expression RBRACKET
+		;
+
+subscription ::= ID LBRACKET expression RBRACKET;
+
+functionCall ::= ID LPAREN RPAREN
+		|  ID LPAREN expressionList RPAREN
+		;
+
+list ::= LBRACKET RBRACKET
+		|  LBRACKET expressionList RBRACKET
+		;
+
+expressionList ::= expression
+		|  expression COMMA expressionList
+		; 
+
+unaryOperator ::=  NOT
+		|  MINUS
+		;
+
+binaryOperator ::= OR
+		|  AND
+		|  LE
+		|  LEQ
+		|  IN
+		|  EQ
+		|  NOTEQ
+		|  XOR
+		|  CONS
+		|  PLUS
+		|  MINUS
+		|  MULT
+		|  DIV
+		;  
+
